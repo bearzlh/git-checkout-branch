@@ -1,18 +1,20 @@
 package main
 
 import (
+	"fmt"
 	"strings"
 )
 
 // Branch describes a Git branch.
 type Branch struct {
 	Name string
+	Index string
 }
 
 // currentBranch returns the current branch.
 func currentBranch() *Branch {
 	name := strings.TrimSpace(cmdOutput("git", "rev-parse", "--abbrev-ref", "HEAD"))
-	return &Branch{Name: name}
+	return &Branch{Name: name, Index: fmt.Sprintf("%2d", 1)}
 }
 
 // localBranches returns the local branches.
@@ -34,12 +36,12 @@ func splitBranch(output string) []*Branch {
 	o := strings.Replace(output, "*", "", -1)
 	names := strings.Split(o, "\n")
 	var branches []*Branch
-	for _, name := range names {
+	for index, name := range names {
 		if len(name) == 0 {
 			continue
 		}
 		name = strings.TrimSpace(name)
-		branches = append(branches, &Branch{Name: name})
+		branches = append(branches, &Branch{Name: name, Index:fmt.Sprintf("%2d", index + 1)})
 	}
 	return branches
 }

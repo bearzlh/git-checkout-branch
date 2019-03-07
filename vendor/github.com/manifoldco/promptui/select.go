@@ -17,7 +17,7 @@ import (
 // Since -1 is not a possible selected index, this ensure that add mode is always unique inside
 // SelectWithAdd's logic.
 const SelectedAdd = -1
-
+var CurrentCursor *Cursor
 // Select represents a list of items used to enable selections, they can be used as search engines, menus
 // or as a list of items in a cli based prompt.
 type Select struct {
@@ -238,7 +238,7 @@ func (s *Select) innerRun(cursorPos, scroll int, top rune) (int, string, error) 
 	sb := screenbuf.New(rl)
 
 	cur := NewCursor("", s.Pointer, false)
-
+	CurrentCursor = &cur
 	canSearch := s.Searcher != nil
 	searchMode := s.StartInSearchMode
 	s.list.SetCursor(cursorPos)

@@ -1,14 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"flag"
 	"fmt"
+	"github.com/manifoldco/promptui"
+	"github.com/spf13/cobra"
 	"os"
 	"strconv"
 	"strings"
-
-	"github.com/manifoldco/promptui"
-	"github.com/spf13/cobra"
+	"text/template"
 )
 
 var (
@@ -77,23 +78,50 @@ func main() {
 	}
 }
 
+func getName(name string) string {
+	out := bytes.Buffer{}
+	Input := promptui.CurrentCursor.Get()
+	if Input != "" && strings.Contains(name, Input) {
+		tpl, err := template.New("").Funcs(promptui.FuncMap).Parse("{{ . | green }}")
+		if err != nil {
+			fmt.Println(err.Error())
+		}
+		err1 := tpl.Execute(&out, Input)
+		if err1 != nil {
+			fmt.Println(err1.Error())
+		}
+		return strings.Replace(name, Input, out.String(), -1)
+	} else {
+		return name
+	}
+}
+
 func selectBranch(branches []*Branch, size int, hideHelp bool) *Branch {
 	iconSelect := promptui.Styler(promptui.FGGreen)("*")
-
+	p := promptui.FuncMap
+	p["getName"] = getName
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
-		Active:   iconSelect + " {{ .Name | green }}",
-		Inactive: "  {{ .Name }}",
+		Active:   iconSelect + " {{ .Index | green }} {{ .Name | green }}",
+		Inactive: "  {{ .Index }} {{ getName .Name }}",
+		FuncMap: p,
 	}
-
 	searcher := func(input string, index int) bool {
 		b := branches[index]
 		name := strings.Replace(strings.ToLower(b.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
-		return strings.Contains(name, input)
+		return strings.Contains(name, input) || input == b.Index
 	}
 
 	label := strconv.Itoa(len(branches)) + " Branches:"
+
+	currentBranch := currentBranch()
+	position := 0
+	for index, item := range branches {
+		if item.Name == currentBranch.Name {
+			position = index
+		}
+	}
 
 	prompt := promptui.Select{
 		Label:        label,
@@ -103,9 +131,10 @@ func selectBranch(branches []*Branch, size int, hideHelp bool) *Branch {
 		Searcher:     searcher,
 		HideHelp:     hideHelp,
 		HideSelected: true,
+		StartInSearchMode: true,
 	}
 
-	i, _, err := prompt.Run()
+	i, _, err := prompt.RunCursorAt(position, position - size / 2)
 	if err != nil {
 		return nil
 	}
